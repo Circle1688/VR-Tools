@@ -12,7 +12,6 @@ class MaterialAssignWindow(ui.Window):
 
         self._usd_context = omni.usd.get_context()
         self._selection = self._usd_context.get_selection()
-        self.stage = self._usd_context.get_stage()
         self.record_material_path = None
 
         self.frame.set_build_fn(self._build_fn)
@@ -86,7 +85,8 @@ class MaterialAssignWindow(ui.Window):
         """
 
         if associated_mesh:
-            mesh = self.stage.GetPrimAtPath(str(associated_mesh))
+            stage = omni.usd.get_context().get_stage()
+            mesh = stage.GetPrimAtPath(associated_mesh)
             if mesh:
                 current_material_prims = mesh.GetRelationship('material:binding').GetTargets()
                 return current_material_prims[0] if len(current_material_prims) > 0 else None
@@ -115,10 +115,10 @@ class MaterialAssignWindow(ui.Window):
         material_path = self.get_material_path_from_mesh(path)
 
         # get the material prim
-        current_material_prim = self.stage.GetPrimAtPath(str(material_path))
+        stage = omni.usd.get_context().get_stage()
 
         prim_paths = []
-        stage_prims = list(self.stage.Traverse())
+        stage_prims = list(stage.Traverse())
         bounds = UsdShade.MaterialBindingAPI.ComputeBoundMaterials(stage_prims, UsdShade.Tokens.allPurpose)
         for stage_prim, material, relationship in zip(stage_prims, bounds[0], bounds[1]):
             material_prim = material.GetPrim()
