@@ -70,7 +70,7 @@ class XiaopengVrToolsExtension(omni.ext.IExt):
 
     def show_window(self, menu, value):
         if value:
-            self._window = VRToolsWindow(XiaopengVrToolsExtension.WINDOW_NAME, width=200, height=250)
+            self._window = VRToolsWindow(XiaopengVrToolsExtension.WINDOW_NAME, width=200, height=300)
             self._window.set_visibility_changed_fn(self._visiblity_changed_fn)
         elif self._window:
             self._window.visible = False

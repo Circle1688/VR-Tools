@@ -14,6 +14,7 @@ from .material_assign.window import MaterialAssignWindow
 from .material_match.window import MaterialMatchWindow
 from .usd_converter.window import USDConverterWindow
 from .batch_rename.window import BatchRenameWindow
+from .rotate_tool.window import RotateToolWindow
 
 import omni.kit.pipapi
 omni.kit.pipapi.install("fuzzywuzzy")
@@ -27,6 +28,7 @@ class VRToolsWindow(ui.Window):
         self.material_match_window = None
         self.usd_converter_window = None
         self.batch_rename_window = None
+        self.rotate_tool_window = None
 
         self.frame.set_build_fn(self._build_fn)
 
@@ -53,6 +55,7 @@ class VRToolsWindow(ui.Window):
                 ui.Button("Material Output", height=40, clicked_fn=self.open_material_output)
                 ui.Button("USD Converter", height=40, clicked_fn=self.open_usd_converter)
                 ui.Button("Batch Rename", height=40, clicked_fn=self.open_batch_rename)
+                ui.Button("Rotate Tool", height=40, clicked_fn=self.open_rotate_tool)
 
     def open_material_output(self):
         if not self.material_output_window:
@@ -83,3 +86,9 @@ class VRToolsWindow(ui.Window):
             self.batch_rename_window = BatchRenameWindow("Batch Rename", width=300, height=120)
         else:
             self.batch_rename_window.visible = True
+
+    def open_rotate_tool(self):
+        if not self.rotate_tool_window:
+            self.rotate_tool_window = RotateToolWindow("Rotate Tool", width=500, height=140)
+        else:
+            self.rotate_tool_window.visible = True

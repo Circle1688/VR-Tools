@@ -5,7 +5,9 @@ import omni.usd
 from typing import Union
 from pxr import Usd, Sdf, UsdGeom, UsdShade
 import os
+import json
 from omni.kit.widget.stage import StageIcons
+from omni.kit.window.file_importer import get_file_importer
 
 import omni.kit.pipapi
 omni.kit.pipapi.install("fuzzywuzzy")
@@ -135,6 +137,7 @@ class MaterialMatchWindow(ui.Window):
 
         self.materials_path = None
         self.replace_path = None
+        self.ovmt_path = None
 
         self.frame.set_build_fn(self._build_fn)
 
@@ -171,6 +174,15 @@ class MaterialMatchWindow(ui.Window):
                         self.replace_path_field = ui.StringField(width=ui.Fraction(2), height=22)
                         self.replace_path_field.model.add_value_changed_fn(self.replace_path_changed)
                     ui.Button('Set', width=50, height=22, clicked_fn=self.set_replace_path)
+
+                with ui.HStack(spacing=5, height=0):
+                    ui.Label('Ovmt Path', width=140)
+                    with ui.VStack(height=0):
+                        ui.Spacer(height=3)
+                        self.ovmt_path_field = ui.StringField(width=ui.Fraction(2), height=22)
+                        self.ovmt_path_field.model.add_value_changed_fn(self.ovmt_path_changed)
+                    ui.Button('Select', width=50, height=22, clicked_fn=self.select_ovmt_file)
+                    ui.Button(f" {omni.kit.ui.get_custom_glyph_code('${glyphs}/menu_prim.svg')}  Replace ", width=50, height=22, clicked_fn=self.replace_with_ovmt)
                                 
                 ui.Button(f" {omni.kit.ui.get_custom_glyph_code('${glyphs}/menu_prim.svg')}  Match ",
                                  width=0, height=22, clicked_fn=self.match)
@@ -199,11 +211,54 @@ class MaterialMatchWindow(ui.Window):
                     self.process_btn = ui.Button(f" {omni.kit.ui.get_custom_glyph_code('${glyphs}/menu_material.svg')}  Replace ",
                                     width=200, height=30, clicked_fn=self.process, enabled=False)
                     
+    def import_handler(self, filename: str, dirname: str, selections):
+        print(f"> Import '{filename}' from '{dirname}' or selected files '{selections}'")
+        self.ovmt_path_field.model.set_value(dirname + filename)
+                    
+    def select_ovmt_file(self):
+        # Get the singleton extension.
+        file_importer = get_file_importer()
+        file_importer.show_window(
+            title="Select Ovmt",
+            # The callback function called after the user has selected a file.
+            import_handler=self.import_handler,
+            file_extension_types=[(".ovmt", "omniverse material data")],
+        )
+
+    def ovmt_path_changed(self, model):
+        self.ovmt_path = model.as_string
+                    
     def materials_path_changed(self, model):
         self.materials_path = model.as_string
 
     def replace_path_changed(self, model):
         self.replace_path = model.as_string
+
+    def replace_with_ovmt(self):
+        """用ovmt格式的材质字典恢复vred默认材质"""
+        if self.ovmt_path and self.materials_path:
+            if os.path.isfile(self.ovmt_path):
+                with omni.kit.undo.group():
+                    with open(self.ovmt_path, "r", encoding="utf8") as f:
+                        material_dict = json.loads(f.read())
+                        for material, bound_objs in material_dict.items():
+                            material_path = self.materials_path + '/' + material
+
+                            # 获取prim路径
+                            prims_paths = []
+                            for obj_name in bound_objs:
+                                prims = self.find_prims_by_name(obj_name)
+                                prims_paths += [x.GetPrimPath() for x in prims]
+                            
+                            omni.kit.commands.execute('BindMaterialCommand',
+                                prim_path=prims_paths,
+                                material_path=material_path)
+        
+    def find_prims_by_name(self, prim_name: str):
+        """通过名字寻找prims"""
+        stage = omni.usd.get_context().get_stage()
+        found_prims = [x for x in stage.Traverse() if x.GetName() == prim_name]
+        return found_prims
                 
     def set_materials_path(self):
         path = self.get_select_prim_path()
